@@ -4,7 +4,8 @@ import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import type {
   Classroom, Teacher, Class, Course, Semester,
-  ClassCourse, ScheduleEntry, Conflict, SwapRequest, Substitute
+  ClassCourse, ScheduleEntry, Conflict, SwapRequest, Substitute,
+  AutoScheduleResult
 } from '../types';
 
 @Injectable({ providedIn: 'root' })
@@ -137,8 +138,8 @@ export class ApiService {
     return this.http.patch<ScheduleEntry>(`${this.baseUrl}/schedules/${id}/`, data);
   }
 
-  autoSchedule(semesterId: number, respectLocked = true): Observable<any> {
-    return this.http.post(`${this.baseUrl}/schedules/auto_schedule/`, {
+  autoSchedule(semesterId: number, respectLocked = true): Observable<AutoScheduleResult> {
+    return this.http.post<AutoScheduleResult>(`${this.baseUrl}/schedules/auto_schedule/`, {
       semester_id: semesterId,
       respect_locked: respectLocked
     });

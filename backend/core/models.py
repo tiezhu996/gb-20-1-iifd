@@ -1,3 +1,4 @@
+from django.core.validators import MinValueValidator
 from django.db import models
 
 
@@ -81,6 +82,11 @@ class Course(models.Model):
 
     name = models.CharField(max_length=100)
     weekly_hours = models.IntegerField(help_text='每周课时数')
+    consecutive_periods = models.PositiveIntegerField(
+        default=1,
+        validators=[MinValueValidator(1)],
+        help_text='一次连排节数：自动排课时把每周课时拆成该节数的完整连堂课组'
+    )
     preferred_room_type = models.CharField(
         max_length=20,
         choices=Classroom.CLASSROOM_TYPES,

@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 from core.models import Classroom, Teacher, Class, Course, Semester
 
@@ -26,6 +28,10 @@ class ScheduleEntry(models.Model):
     classroom = models.ForeignKey(Classroom, on_delete=models.CASCADE)
     day_of_week = models.IntegerField(help_text='1-5 代表周一到周五')
     period = models.IntegerField(help_text='第几节课')
+    block_id = models.UUIDField(
+        default=uuid.uuid4, editable=False,
+        help_text='连堂课组标识：同一连堂课组的多节课共享一个ID'
+    )
     is_locked = models.BooleanField(default=False, help_text='锁定后不参与自动重排')
     is_conflict = models.BooleanField(default=False)
     conflict_type = models.CharField(max_length=50, blank=True)

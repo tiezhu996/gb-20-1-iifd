@@ -37,6 +37,7 @@ export interface Course {
   id: number;
   name: string;
   weekly_hours: number;
+  consecutive_periods: number;
   preferred_room_type: 'normal' | 'lab' | 'multimedia';
   priority: 'high' | 'medium' | 'low';
   is_active: boolean;
@@ -78,6 +79,7 @@ export interface ScheduleEntry {
   classroom: number;
   day_of_week: number;
   period: number;
+  block_id?: string;
   is_locked: boolean;
   is_conflict: boolean;
   conflict_type?: string;
@@ -132,4 +134,23 @@ export interface Substitute {
   substitute_teacher_name?: string;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface SchedulingMessage {
+  type: 'insufficient_slots' | 'classroom' | 'placement_summary' | string;
+  task?: string;
+  course_id?: number;
+  course_name?: string;
+  class_id?: number;
+  block_size?: number;
+  day_of_week?: number | null;
+  suggested_periods?: number[];
+  message: string;
+}
+
+export interface AutoScheduleResult {
+  schedule: ScheduleEntry[];
+  conflicts: Conflict[];
+  scheduling_messages: SchedulingMessage[];
+  total_entries: number;
 }
