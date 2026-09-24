@@ -81,6 +81,10 @@ class Course(models.Model):
 
     name = models.CharField(max_length=100)
     weekly_hours = models.IntegerField(help_text='每周课时数')
+    consecutive_periods = models.PositiveIntegerField(
+        default=1,
+        help_text='连排节数：自动排课时每周课时按此数量拆成完整连堂课组，1 表示不连排'
+    )
     preferred_room_type = models.CharField(
         max_length=20,
         choices=Classroom.CLASSROOM_TYPES,

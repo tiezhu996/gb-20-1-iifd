@@ -65,6 +65,12 @@ const PRIORITIES = [
           </mat-form-field>
 
           <mat-form-field class="full-width-field">
+            <mat-label>连排节数</mat-label>
+            <input matInput type="number" formControlName="consecutive_periods" min="1" required>
+            <mat-hint>自动排课时按此节数组成连堂课组（1 表示不连排），课组不跨上午/下午</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field class="full-width-field">
             <mat-label>适用教室类型</mat-label>
             <mat-select formControlName="preferred_room_type" required>
               <mat-option *ngFor="let t of roomTypes" [value]="t.value">
@@ -103,6 +109,15 @@ const PRIORITIES = [
             <td mat-cell *matCellDef="let item">{{ item.weekly_hours }}</td>
           </ng-container>
 
+          <ng-container matColumnDef="consecutive_periods">
+            <th mat-header-cell *matHeaderCellDef>连排节数</th>
+            <td mat-cell *matCellDef="let item">
+              {{ item.consecutive_periods && item.consecutive_periods > 1
+                ? item.consecutive_periods + ' 节连排'
+                : '不连排' }}
+            </td>
+          </ng-container>
+
           <ng-container matColumnDef="preferred_room_type">
             <th mat-header-cell *matHeaderCellDef>适用教室</th>
             <td mat-cell *matCellDef="let item">{{ getRoomTypeLabel(item.preferred_room_type) }}</td>
@@ -138,7 +153,7 @@ const PRIORITIES = [
   `
 })
 export class CoursesComponent implements OnInit {
-  displayedColumns: string[] = ['name', 'weekly_hours', 'preferred_room_type', 'priority', 'is_active', 'actions'];
+  displayedColumns: string[] = ['name', 'weekly_hours', 'consecutive_periods', 'preferred_room_type', 'priority', 'is_active', 'actions'];
   dataSource: Course[] = [];
   roomTypes = ROOM_TYPES;
   priorities = PRIORITIES;
@@ -154,6 +169,7 @@ export class CoursesComponent implements OnInit {
       id: [null],
       name: ['', Validators.required],
       weekly_hours: [2, [Validators.required, Validators.min(1)]],
+      consecutive_periods: [1, [Validators.required, Validators.min(1)]],
       preferred_room_type: ['normal', Validators.required],
       priority: ['medium', Validators.required],
       is_active: [true]
@@ -183,6 +199,7 @@ export class CoursesComponent implements OnInit {
     this.form.reset({
       name: '',
       weekly_hours: 2,
+      consecutive_periods: 1,
       preferred_room_type: 'normal',
       priority: 'medium',
       is_active: true
@@ -192,7 +209,10 @@ export class CoursesComponent implements OnInit {
 
   startEdit(item: Course): void {
     this.editingId = item.id;
-    this.form.patchValue(item);
+    this.form.patchValue({
+      ...item,
+      consecutive_periods: item.consecutive_periods ?? 1
+    });
     this.showForm = true;
   }
 
@@ -202,10 +222,14 @@ export class CoursesComponent implements OnInit {
 
   save(): void {
     if (this.form.invalid) {
-      alert('请填写必填字段');
+      alert('请填写必填字段，且连排节数至少为 1');
       return;
     }
     const data = this.form.value;
+    if (data.consecutive_periods > data.weekly_hours) {
+      alert('连排节数不能大于每周课时数');
+      return;
+    }
     if (this.editingId) {
       this.api.updateCourse(this.editingId, data).subscribe(() => {
         this.showForm = false;

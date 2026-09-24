@@ -37,6 +37,7 @@ export interface Course {
   id: number;
   name: string;
   weekly_hours: number;
+  consecutive_periods?: number;
   preferred_room_type: 'normal' | 'lab' | 'multimedia';
   priority: 'high' | 'medium' | 'low';
   is_active: boolean;
@@ -78,6 +79,7 @@ export interface ScheduleEntry {
   classroom: number;
   day_of_week: number;
   period: number;
+  block_id?: string;
   is_locked: boolean;
   is_conflict: boolean;
   conflict_type?: string;
@@ -89,6 +91,24 @@ export interface ScheduleEntry {
   class_name?: string;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface UnplacedBlockMessage {
+  type: 'unplaced_block' | 'classroom' | 'insufficient_slots' | string;
+  task?: string;
+  course_name?: string;
+  class_id?: number;
+  group_size?: number;
+  day_of_week?: number | null;
+  periods?: number[];
+  message: string;
+}
+
+export interface AutoScheduleResult {
+  schedule: ScheduleEntry[];
+  conflicts: Conflict[];
+  scheduling_messages: UnplacedBlockMessage[];
+  total_entries: number;
 }
 
 export interface Conflict {

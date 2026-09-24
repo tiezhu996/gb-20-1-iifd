@@ -23,9 +23,29 @@ class ClassSerializer(serializers.ModelSerializer):
 
 
 class CourseSerializer(serializers.ModelSerializer):
+    consecutive_periods = serializers.IntegerField(
+        required=False, default=1, min_value=1, label='连排节数'
+    )
+
     class Meta:
         model = Course
         fields = '__all__'
+
+    def validate(self, data):
+        weekly_hours = data.get('weekly_hours', getattr(self.instance, 'weekly_hours', None))
+        consecutive_periods = data.get(
+            'consecutive_periods',
+            getattr(self.instance, 'consecutive_periods', 1)
+        )
+        if weekly_hours and consecutive_periods > weekly_hours:
+            raise serializers.ValidationError({
+                'consecutive_periods': '连排节数不能大于每周课时数'
+            })
+        return data
+
+    def create(self, validated_data):
+        validated_data.setdefault('consecutive_periods', 1)
+        return super().create(validated_data)
 
 
 class SemesterSerializer(serializers.ModelSerializer):

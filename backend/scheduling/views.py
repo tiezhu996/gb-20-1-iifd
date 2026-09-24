@@ -114,7 +114,9 @@ class ScheduleEntryViewSet(viewsets.ModelViewSet):
                 preferred_room_type=cc.course.preferred_room_type,
                 priority=cc.course.priority,
                 available_time_slots=[],
-                classroom_capacity=cc.class_id.student_count or 40
+                classroom_capacity=cc.class_id.student_count or 40,
+                course_name=cc.course.name,
+                consecutive_periods=cc.course.consecutive_periods
             ))
 
         classrooms_data = {
@@ -138,7 +140,7 @@ class ScheduleEntryViewSet(viewsets.ModelViewSet):
                 semester=semester, is_locked=True
             ).values(
                 'id', 'class_id', 'teacher_id', 'classroom_id',
-                'day_of_week', 'period', 'is_locked'
+                'day_of_week', 'period', 'is_locked', 'block_id'
             )
             locked_entries = list(locked)
 
@@ -167,6 +169,7 @@ class ScheduleEntryViewSet(viewsets.ModelViewSet):
                     classroom_id=a['classroom_id'],
                     day_of_week=a['day_of_week'],
                     period=a['period'],
+                    block_id=a.get('block_id', ''),
                     is_locked=False
                 ))
             ScheduleEntry.objects.bulk_create(bulk_entries)

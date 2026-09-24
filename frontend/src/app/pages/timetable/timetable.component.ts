@@ -15,7 +15,8 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { ApiService } from '../../services/api.service';
 import type {
-  ScheduleEntry, Semester, Class, Teacher, Classroom
+  ScheduleEntry, Semester, Class, Teacher, Classroom,
+  UnplacedBlockMessage
 } from '../../types';
 
 @Component({
@@ -143,6 +144,7 @@ import type {
                         <div class="schedule-detail">{{ entry.classroom_name }}</div>
                         <div class="schedule-detail">{{ entry.class_name }}</div>
                         <div style="margin-top: 4px; display: flex; gap: 4px; flex-wrap: wrap;">
+                          <mat-chip *ngIf="isBlockEntry(entry)" color="primary" selected>连堂</mat-chip>
                           <mat-chip *ngIf="entry.is_locked" color="accent" selected>锁定</mat-chip>
                           <mat-chip *ngIf="entry.is_conflict" color="warn" selected>冲突</mat-chip>
                           <button
@@ -179,8 +181,62 @@ import type {
           </mat-card-content>
         </mat-card>
       </div>
+
+      <div *ngIf="unplacedBlocks.length > 0" class="unplaced-panel">
+        <mat-card>
+          <mat-card-header>
+            <mat-icon color="warn" mat-card-avatar style="font-size: 28px; width: auto; height: auto;">warning</mat-icon>
+            <mat-card-title>{{ unplacedBlocks.length }} 个连堂课组未能排入</mat-card-title>
+            <mat-card-subtitle>以下课组没有被拆开，请调整锁定课或其他课程后重新排课</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <table class="unplaced-table">
+              <thead>
+                <tr>
+                  <th>课程</th>
+                  <th>课组大小</th>
+                  <th>建议星期</th>
+                  <th>建议节次</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let m of unplacedBlocks">
+                  <td>{{ m.course_name || m.task || '未知课程' }}</td>
+                  <td>{{ m.group_size }} 节连堂</td>
+                  <td>{{ m.day_of_week ? weekDays[m.day_of_week - 1] : '—' }}</td>
+                  <td>{{ formatPeriods(m.periods) }}</td>
+                  <td class="unplaced-msg">{{ m.message }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </mat-card-content>
+        </mat-card>
+      </div>
     </div>
-  `
+  `,
+  styles: [`
+    .unplaced-panel {
+      margin-top: 16px;
+    }
+    .unplaced-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .unplaced-table th,
+    .unplaced-table td {
+      border: 1px solid #ddd;
+      padding: 8px 12px;
+      text-align: left;
+    }
+    .unplaced-table th {
+      background: #fff3e0;
+      font-weight: 600;
+    }
+    .unplaced-table td.unplaced-msg {
+      color: #555;
+    }
+  `]
 })
 export class TimetableComponent implements OnInit {
   @ViewChild('timetableContainer') timetableContainer!: ElementRef;
@@ -196,6 +252,7 @@ export class TimetableComponent implements OnInit {
   selectedClassroomId: number | null = null;
   viewMode: 'class' | 'teacher' | 'classroom' = 'class';
   schedulingMessage: string = '';
+  unplacedBlocks: UnplacedBlockMessage[] = [];
   currentSemester: Semester | null = null;
 
   weekDays = ['星期一', '星期二', '星期三', '星期四', '星期五'];
@@ -322,21 +379,37 @@ export class TimetableComponent implements OnInit {
     return this.schedules.filter(e => e.day_of_week === day && e.period === period);
   }
 
+  isBlockEntry(entry: ScheduleEntry): boolean {
+    return !!entry.block_id;
+  }
+
+  formatPeriods(periods?: number[] | null): string {
+    if (!periods || periods.length === 0) return '—';
+    if (periods.length === 1) return `第${periods[0]}节`;
+    return `第${periods[0]}-${periods[periods.length - 1]}节`;
+  }
+
   runAutoSchedule(respectLocked = true): void {
     if (!this.selectedSemesterId) return;
     this.schedulingMessage = '正在自动排课，请稍候...';
+    this.unplacedBlocks = [];
 
     this.api.autoSchedule(this.selectedSemesterId, respectLocked).subscribe(result => {
       const total = result.total_entries || 0;
       const conflicts = (result.conflicts || []).length;
       const messages = result.scheduling_messages || [];
+      this.unplacedBlocks = messages.filter(m => m.type === 'unplaced_block');
+      const otherMessages = messages.filter(m => m.type !== 'unplaced_block');
 
       let msg = `排课完成！共安排 ${total} 节课`;
       if (conflicts > 0) {
         msg += `，发现 ${conflicts} 个冲突`;
       }
-      if (messages.length > 0) {
-        msg += `。提示: ${messages.map((m: any) => m.message).join('; ')}`;
+      if (this.unplacedBlocks.length > 0) {
+        msg += `，${this.unplacedBlocks.length} 个连堂课组未能排入（见下方明细）`;
+      }
+      if (otherMessages.length > 0) {
+        msg += `。提示: ${otherMessages.map(m => m.message).join('; ')}`;
       }
       this.schedulingMessage = msg;
       this.loadSchedules();
